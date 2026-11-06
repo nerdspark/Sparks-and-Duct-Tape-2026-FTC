@@ -125,9 +125,9 @@ public class Shooter {
         shooterLeft.setVelocity(motorSpeed);
         shooterRight.setVelocity(motorSpeed);
         target = motorSpeed;
-//        packet.put("Target", motorSpeed);
-//        packet.put("Left Speed", shooterLeft.getVelocity());
-//        packet.put("Right Speed", shooterRight.getVelocity());
+        packet.put("Target", motorSpeed);
+        packet.put("Left Speed", shooterLeft.getVelocity());
+        packet.put("Right Speed", shooterRight.getVelocity());
         dashboard.sendTelemetryPacket(packet);
     }
 

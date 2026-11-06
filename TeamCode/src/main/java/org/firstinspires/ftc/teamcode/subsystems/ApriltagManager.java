@@ -40,12 +40,12 @@ public class ApriltagManager {
                 .setDrawTagOutline(true)
                 .setDrawAxes(false)
                 .setSuppressCalibrationWarnings(false)
-                .setLensIntrinsics(1645.60197453, 1645.60197453, 668.695640283, 564.240609827)
+                .setLensIntrinsics(867.316568133, 867.316568133, 668.966517635, 388.591225738)
                 .setNumThreads(2) // Has 4 total
-                .setCameraPose(
-                        new Position(DistanceUnit.METER, 0, -0.092794, 0.096738, 0),
-                        new YawPitchRollAngles(AngleUnit.DEGREES, 0, -35, 0, 0)
-                )
+//                .setCameraPose(
+//                        new Position(DistanceUnit.METER, 0, -0.092794, 0.096738, 0),
+//                        new YawPitchRollAngles(AngleUnit.DEGREES, 0, -35, 0, 0)
+//                )
                 .setOutputUnits(DistanceUnit.METER, AngleUnit.DEGREES)
                 .build();
 
@@ -58,6 +58,8 @@ public class ApriltagManager {
                 .setAutoStopLiveView(true)
                 .build();
         portal.setProcessorEnabled(aprilTagProcessor, true);
+
+        dashboard.startCameraStream(portal, 30);
     }
 
     public void getClusters() {
@@ -78,34 +80,24 @@ public class ApriltagManager {
                         packet.put("Robot Z", clusterDetection.ftcPose.z);
                         packet.put("Robot Yaw", clusterDetection.ftcPose.yaw);
                         dashboard.sendTelemetryPacket(packet);
-                        double alpha = Math.toRadians(clusterDetection.ftcPose.pitch); // downward angle
-                        double tagYaw = Math.toRadians(clusterDetection.ftcPose.yaw); // tag orientation, used only for the shift direction
-
-                        double horiz = Shoot.L * Math.cos(alpha);
-                        double xT = clusterDetection.ftcPose.x - horiz * Math.sin(tagYaw);
-                        double yT = clusterDetection.ftcPose.y + horiz * Math.cos(tagYaw);
-                        double zT = clusterDetection.ftcPose.z - Shoot.L * Math.sin(alpha);
-
-                        double bearing = Math.toDegrees(Math.atan2(-xT, yT));   // turn error to face the new point
 
                         double cameraTilt = Math.toRadians(55.0);
-
                         double cosTilt = Math.cos(cameraTilt);
                         double sinTilt = Math.sin(cameraTilt);
 
-                        double targetRobotY =
-                                yT * cosTilt
-                                        - zT * sinTilt
-                                        - 0.092794;
+                        double robotY = clusterDetection.ftcPose.y * cosTilt - clusterDetection.ftcPose.z * sinTilt - 0.092794;
+                        double robotZ = clusterDetection.ftcPose.y * sinTilt + clusterDetection.ftcPose.z * cosTilt + 0.096738;
 
-                        double targetRobotZ =
-                                yT * sinTilt
-                                        + zT * cosTilt
-                                        + 0.096738;
+                        double pitchPrime = Math.atan2(robotZ, robotY);
+
+                        double yT = robotY + Shoot.L * Math.cos(pitchPrime);
+                        double zT = robotZ - Shoot.L * Math.sin(pitchPrime);
+
+                        double bearing = Math.toDegrees(Math.atan2(-clusterDetection.ftcPose.x, yT));
 
                         Pose3D pose = new Pose3D(
-                                new Position(DistanceUnit.METER, xT, targetRobotY, targetRobotZ, 0),
-                                new YawPitchRollAngles(AngleUnit.DEGREES, bearing, clusterDetection.ftcPose.pitch, clusterDetection.ftcPose.roll, 0)
+                                new Position(DistanceUnit.METER, clusterDetection.ftcPose.x, yT, zT, 0),
+                                new YawPitchRollAngles(AngleUnit.DEGREES, bearing, pitchPrime, 0, 0)
                         );
 
                         latestData = new ClusterData(clusterDetection.percentClusterFound, pose, clusterDetection.metadata);
