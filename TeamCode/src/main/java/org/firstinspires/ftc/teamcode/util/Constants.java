@@ -1,11 +1,10 @@
 package org.firstinspires.ftc.teamcode.util;
 
 public final class Constants {
-
     public static class Shoot {
         public static final double exit_height = 0.25; // m
-        public static final double eff = 0.99; // 0-1
-        public static final double Cl = 0.01; // 0-1
+        public static final double eff = 0.999; // 0-1
+        public static final double Cl = 0.001; // 0-1
         public static final double wheel_radius = 0.048; // m
         public static final double gear_ratio = 30.0 / 20.0;
         public static final double hood_angle = Math.toRadians(70);

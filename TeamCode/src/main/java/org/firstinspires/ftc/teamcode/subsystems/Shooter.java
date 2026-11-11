@@ -43,7 +43,7 @@ public class Shooter {
         shooterRight.setDirection(DcMotorSimple.Direction.FORWARD);
         shooterRight.setZeroPowerBehavior(DcMotor.ZeroPowerBehavior.FLOAT);
 
-        PIDFCoefficients gains = new PIDFCoefficients(28, 2, 7, 12);
+        PIDFCoefficients gains = new PIDFCoefficients(26, 2, 8, 10);
         shooterLeft.setPIDFCoefficients(DcMotor.RunMode.RUN_USING_ENCODER, gains);
         shooterRight.setPIDFCoefficients(DcMotor.RunMode.RUN_USING_ENCODER, gains);
 
@@ -128,7 +128,7 @@ public class Shooter {
         packet.put("Target", motorSpeed);
         packet.put("Left Speed", shooterLeft.getVelocity());
         packet.put("Right Speed", shooterRight.getVelocity());
-        dashboard.sendTelemetryPacket(packet);
+//        dashboard.sendTelemetryPacket(packet);
     }
 
     private void align() {

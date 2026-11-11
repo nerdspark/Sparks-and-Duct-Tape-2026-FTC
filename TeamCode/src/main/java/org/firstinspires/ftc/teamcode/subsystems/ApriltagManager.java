@@ -75,20 +75,25 @@ public class ApriltagManager {
                 AprilTagClusterDetection clusterDetection = (AprilTagClusterDetection) detection;
                 if (clusterDetection.metadata.name.toLowerCase().startsWith(alliance)) {
                     if (Math.abs(clusterDetection.ftcPose.roll) < 90) {
+                        double z = clusterDetection.ftcPose.z;
                         packet.put("Robot X", clusterDetection.ftcPose.x);
                         packet.put("Robot Y", clusterDetection.ftcPose.y);
-                        packet.put("Robot Z", clusterDetection.ftcPose.z);
+                        packet.put("Robot Z", z);
                         packet.put("Robot Yaw", clusterDetection.ftcPose.yaw);
-                        dashboard.sendTelemetryPacket(packet);
 
                         double cameraTilt = Math.toRadians(55.0);
                         double cosTilt = Math.cos(cameraTilt);
                         double sinTilt = Math.sin(cameraTilt);
 
-                        double robotY = clusterDetection.ftcPose.y * cosTilt - clusterDetection.ftcPose.z * sinTilt - 0.092794;
-                        double robotZ = clusterDetection.ftcPose.y * sinTilt + clusterDetection.ftcPose.z * cosTilt + 0.096738;
+                        double robotY = clusterDetection.ftcPose.y * cosTilt - z * sinTilt - 0.092794;
+                        double robotZ = clusterDetection.ftcPose.y * sinTilt + z * cosTilt + 0.096738;
 
                         double pitchPrime = Math.atan2(robotZ, robotY);
+
+                        if (pitchPrime > Math.PI / 2 || pitchPrime < 0) {
+                            packet.addLine("Pitch is out of bounds");
+                        }
+//                        dashboard.sendTelemetryPacket(packet);
 
                         double yT = robotY + Shoot.L * Math.cos(pitchPrime);
                         double zT = robotZ - Shoot.L * Math.sin(pitchPrime);

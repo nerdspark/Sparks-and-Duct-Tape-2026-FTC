@@ -1,6 +1,7 @@
 package org.firstinspires.ftc.teamcode.teleop;
 
 import com.acmerobotics.dashboard.FtcDashboard;
+import com.acmerobotics.dashboard.config.Config;
 import com.acmerobotics.dashboard.telemetry.TelemetryPacket;
 import com.acmerobotics.roadrunner.Pose2d;
 import com.acmerobotics.roadrunner.PoseVelocity2d;
@@ -17,11 +18,16 @@ import org.firstinspires.ftc.teamcode.util.PID;
 import java.util.function.Consumer;
 
 @TeleOp(name = "Red Teleop", group = "Comp")
+@Config
 public class Red_Teleop extends OpMode {
     private MecanumDrive drive;
     private double commandDegrees = 0.0;
     private Consumer<Double> degreesComsumer = (val) -> commandDegrees = val;
-    private final PID turnController = new PID(0.0, 0, 0.0);
+    private double rx;
+    public static double p = 0.002;
+    public static double i = 0.0;
+    public static double d = 0.0;
+//    private final PID turnController = new PID(0.0, 0, 0.0);
     private ApriltagManager apriltag;
     private Intake intake;
     private Shooter shooter;
@@ -36,6 +42,8 @@ public class Red_Teleop extends OpMode {
     }
 
     public void loop() {
+        TelemetryPacket packet = new TelemetryPacket();
+        PID turnController = new PID(p, i, d);
         apriltag.getClusters();
 
         if (gamepad1.aWasPressed()) {
@@ -64,10 +72,9 @@ public class Red_Teleop extends OpMode {
         } else if (gamepad2.bWasReleased()) {
             intake.stop();
         }
-        if (gamepad2.left_bumper) {
+        if (gamepad2.leftBumperWasPressed()) {
             intake.flowerIntake();
-        }
-        if (gamepad2.right_bumper) {
+        } else if (gamepad2.leftBumperWasReleased()) {
             intake.barUp();
         }
 
@@ -98,8 +105,12 @@ public class Red_Teleop extends OpMode {
 
         drive.localizer.update();
 
-//        double rx = turnController.calculate(Math.toDegrees(drive.localizer.getPose().heading.toDouble()), commandDegrees);
-        double rx = gamepad1.left_stick_x;
+        packet.put("Target Yaw", commandDegrees);
+        packet.put("Current Yaw", Math.toDegrees(drive.localizer.getPose().heading.toDouble()));
+        dash.sendTelemetryPacket(packet);
+
+//        rx = turnController.calculate(Math.toDegrees(drive.localizer.getPose().heading.toDouble()), commandDegrees);
+        rx = gamepad1.left_stick_x;
 
         // ********************* Driving Math ***** Do NOT Change *********************
         double botHeading = drive.localizer.getPose().heading.toDouble();
@@ -110,6 +121,6 @@ public class Red_Teleop extends OpMode {
 
         rotX = rotX * 1.1;  // Counteract imperfect strafing
 
-        drive.setDrivePowers(new PoseVelocity2d(new Vector2d(rotY, rotX), rx));
+        drive.setDrivePowers(new PoseVelocity2d(new Vector2d(rotY, rotX), -rx));
     }
 }

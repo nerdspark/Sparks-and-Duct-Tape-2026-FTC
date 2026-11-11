@@ -11,6 +11,7 @@ public class PID {
     private final double m_Ki;
     private final double m_Kd;
 
+    private double lastPosition;
     private double lastReference;
     private double previousFilterEstimate;
     private double integralSum = 0;
@@ -18,6 +19,7 @@ public class PID {
 
     private final ElapsedTime timer;
     private double lastTime;
+    private final ElapsedTime calcTimer;
 
     public PID(double Kp, double Ki, double Kd) {
         this.m_Kp = Kp;
@@ -25,175 +27,55 @@ public class PID {
         this.m_Kd = Kd;
         timer = new ElapsedTime();
         lastTime = timer.seconds();
+        calcTimer = new ElapsedTime();
     }
 
     public double calculate(double reference, double position) {
-        ElapsedTime timer = new ElapsedTime();
+        double deltaTime = calcTimer.seconds();
+        calcTimer.reset();
+        if (deltaTime <= 0.0001) {
+            return 0;
+        }
 
-        boolean setPointIsNotReached = !(Math.abs(position - reference) <= 0.5);
+        double error = ((position - reference + 180) % 360 + 360) % 360 - 180;
+        boolean setPointIsNotReached = !(Math.abs(error) <= 0.75);
 
         if (setPointIsNotReached) {
-            double error;
-            if (Math.abs(position - reference) < 180) {
-                error = position - reference;
-            } else {
-                if (position - reference < 0) {
-                    error = position - (reference - 360);
-                } else {
-                    error = position - (reference + 360);
-                }
-            }
-
-            // calculate the error
-            //double error = reference - position;
-
-            double errorChange = (error - lastError);
+            double headingChange = ((((reference - lastReference) + 180) % 360 + 360) % 360 - 180) / deltaTime;
+            lastReference = reference;
 
             // filter out high frequency noise to increase derivative performance
-            double a = 0.8; // a can be anything from 0 < a < 1
-            double currentFilterEstimate = (a * previousFilterEstimate) + (1- a) * errorChange;
-            previousFilterEstimate = currentFilterEstimate;
-
-            // rate of change of the error
-            double derivative = currentFilterEstimate / timer.seconds();
+            // Low-pass filter derivative
+            double a = 0.8;
+            double derivative = (a * previousFilterEstimate) + ((1 - a) * -headingChange);
+            previousFilterEstimate = derivative;
 
             // sum of all error over time
-            integralSum = integralSum + (error * timer.seconds());
+            integralSum += error * deltaTime;
 
             // max out integral sum
             double maxIntegralSum = 100;
-            if (integralSum > maxIntegralSum) {
-                integralSum = maxIntegralSum;
-            }
-
-            if (integralSum < -maxIntegralSum) {
-                integralSum = -maxIntegralSum;
-            }
+            integralSum = Math.max(
+                    -maxIntegralSum,
+                    Math.min(maxIntegralSum, integralSum)
+            );
 
             // reset integral sum upon setpoint changes
-            if (reference != lastReference) {
+            if (position != lastPosition) {
                 integralSum = 0;
             }
 
             lastError = error;
-
-            lastReference = reference;
-
-            // reset the timer for next time
-            timer.reset();
+            lastPosition = position;
 
             double power = (m_Kp * error) + (m_Ki * integralSum) + (m_Kd * derivative);
-            double maxVal = Math.max(Math.abs(power), 1.0);
 
-            return power / maxVal;
+            return Math.max(-0.75, Math.min(0.75, power));
         }
 
-        return 0;
-    }
-
-    public double calculateWError(double error) {
-        ElapsedTime timer = new ElapsedTime();
-
-        boolean setPointIsNotReached = !(Math.abs(error) <= 0.5);
-
-        if (setPointIsNotReached) {
-
-            // calculate the error
-            //double error = reference - position;
-
-            double errorChange = (error - lastError);
-
-            // filter out high frequency noise to increase derivative performance
-            double a = 0.8; // a can be anything from 0 < a < 1
-            double currentFilterEstimate = (a * previousFilterEstimate) + (1- a) * errorChange;
-            previousFilterEstimate = currentFilterEstimate;
-
-            // rate of change of the error
-            double derivative = currentFilterEstimate / timer.seconds();
-
-            // sum of all error over time
-            integralSum = integralSum + (error * timer.seconds());
-
-            // max out integral sum
-            double maxIntegralSum = 100;
-            if (integralSum > maxIntegralSum) {
-                integralSum = maxIntegralSum;
-            }
-
-            if (integralSum < -maxIntegralSum) {
-                integralSum = -maxIntegralSum;
-            }
-
-            // reset integral sum upon setpoint changes
-            if (Math.signum(error) != Math.signum(lastError)) {
-                integralSum = 0.0;
-            }
-
-            lastError = error;
-
-            // reset the timer for next time
-            timer.reset();
-
-            double power = (m_Kp * error) + (m_Ki * integralSum) + (m_Kd * derivative);
-            double maxVal = Math.max(Math.abs(power), 1.0);
-
-            return power / maxVal;
-        }
-
-        return 0;
-    }
-
-    public double calculatePosition(double reference, double position) {
-        double currentTime = timer.seconds();
-        double dt = currentTime - lastTime;
-        lastTime = currentTime;
-
-        boolean setPointIsNotReached = !(Math.abs(position - reference) < 0.5);
-
-        if (setPointIsNotReached) {
-            // calculate the error
-            double error = reference - position;
-
-            double errorChange = (error - lastError);
-
-            // filter out high frequency noise to increase derivative performance
-            double a = 0.6; // a can be anything from 0 < a < 1
-            double currentFilterEstimate = (a * previousFilterEstimate) + (1- a) * errorChange;
-            previousFilterEstimate = currentFilterEstimate;
-
-            // rate of change of the error
-            double derivative = currentFilterEstimate / dt;
-
-            // sum of all error over time
-            integralSum = integralSum + (error * dt);
-
-            // max out integral sum
-            double maxIntegralSum = 100;
-            if (integralSum > maxIntegralSum) {
-                integralSum = maxIntegralSum;
-            }
-
-            if (integralSum < -maxIntegralSum) {
-                integralSum = -maxIntegralSum;
-            }
-
-            // reset integral sum upon setpoint changes
-            if (reference != lastReference) {
-                integralSum = 0;
-            }
-
-            lastError = error;
-
-            lastReference = reference;
-
-            // reset the timer for next time
-            timer.reset();
-
-            double power = (m_Kp * error) + (m_Ki * integralSum) + (m_Kd * derivative);
-            double maxVal = Math.max(Math.abs(power), 1.0);
-
-            return power / maxVal;
-        }
+        integralSum = 0;
+        lastError = error;
+        previousFilterEstimate = 0;
 
         return 0;
     }
