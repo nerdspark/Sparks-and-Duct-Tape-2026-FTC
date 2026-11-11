@@ -9,6 +9,7 @@ import com.acmerobotics.roadrunner.Vector2d;
 import com.qualcomm.robotcore.eventloop.opmode.OpMode;
 import com.qualcomm.robotcore.eventloop.opmode.TeleOp;
 
+import org.firstinspires.ftc.robotcore.external.navigation.AngleUnit;
 import org.firstinspires.ftc.teamcode.MecanumDrive;
 import org.firstinspires.ftc.teamcode.subsystems.ApriltagManager;
 import org.firstinspires.ftc.teamcode.subsystems.Intake;
@@ -18,16 +19,11 @@ import org.firstinspires.ftc.teamcode.util.PID;
 import java.util.function.Consumer;
 
 @TeleOp(name = "Red Teleop", group = "Comp")
-@Config
 public class Red_Teleop extends OpMode {
     private MecanumDrive drive;
     private double commandDegrees = 0.0;
     private Consumer<Double> degreesComsumer = (val) -> commandDegrees = val;
-    private double rx;
-    public static double p = 0.002;
-    public static double i = 0.0;
-    public static double d = 0.0;
-//    private final PID turnController = new PID(0.0, 0, 0.0);
+    private final PID turnController = new PID(0.088, 0.1, 0.00000001);
     private ApriltagManager apriltag;
     private Intake intake;
     private Shooter shooter;
@@ -42,8 +38,6 @@ public class Red_Teleop extends OpMode {
     }
 
     public void loop() {
-        TelemetryPacket packet = new TelemetryPacket();
-        PID turnController = new PID(p, i, d);
         apriltag.getClusters();
 
         if (gamepad1.aWasPressed()) {
@@ -105,15 +99,10 @@ public class Red_Teleop extends OpMode {
 
         drive.localizer.update();
 
-        packet.put("Target Yaw", commandDegrees);
-        packet.put("Current Yaw", Math.toDegrees(drive.localizer.getPose().heading.toDouble()));
-        dash.sendTelemetryPacket(packet);
-
-//        rx = turnController.calculate(Math.toDegrees(drive.localizer.getPose().heading.toDouble()), commandDegrees);
-        rx = gamepad1.left_stick_x;
+        double rx = turnController.calc(drive.imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.DEGREES), commandDegrees);
 
         // ********************* Driving Math ***** Do NOT Change *********************
-        double botHeading = drive.localizer.getPose().heading.toDouble();
+        double botHeading = drive.imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.RADIANS);
 
         // Rotate the movement direction counter to the bot's rotation
         double rotX = x * Math.cos(-botHeading) - y * Math.sin(botHeading);
@@ -121,6 +110,6 @@ public class Red_Teleop extends OpMode {
 
         rotX = rotX * 1.1;  // Counteract imperfect strafing
 
-        drive.setDrivePowers(new PoseVelocity2d(new Vector2d(rotY, rotX), -rx));
+        drive.setDrivePowers(new PoseVelocity2d(new Vector2d(rotY, rotX), rx));
     }
 }
