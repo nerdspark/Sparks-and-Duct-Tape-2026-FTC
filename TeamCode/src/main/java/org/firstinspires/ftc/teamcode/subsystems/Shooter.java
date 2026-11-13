@@ -57,7 +57,7 @@ public class Shooter {
     public enum State {
         None,
         Spin_Up,
-        Align,
+        //Align,
         Shoot
     }
 
@@ -70,9 +70,9 @@ public class Shooter {
             case Spin_Up:
                 runPhysics();
                 break;
-            case Align:
-                align();
-                break;
+//            case Align:
+//                align();
+//                break;
             case Shoot:
                 runPhysics();
                 align();

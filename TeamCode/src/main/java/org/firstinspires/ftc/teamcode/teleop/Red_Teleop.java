@@ -23,7 +23,8 @@ public class Red_Teleop extends OpMode {
     private MecanumDrive drive;
     private double commandDegrees = 0.0;
     private Consumer<Double> degreesComsumer = (val) -> commandDegrees = val;
-    private final PID turnController = new PID(0.088, 0.1, 0.00000001);
+    //0.885
+    private final PID turnController = new PID(0.069, 0.1, 0.00000001);
     private ApriltagManager apriltag;
     private Intake intake;
     private Shooter shooter;
@@ -40,9 +41,9 @@ public class Red_Teleop extends OpMode {
     public void loop() {
         apriltag.getClusters();
 
-        if (gamepad1.aWasPressed()) {
-            shooter.setState(Shooter.State.Align);
-        }
+//        if (gamepad1.aWasPressed()) {
+//            shooter.setState(Shooter.State.Align);
+//        }
         if (gamepad1.left_bumper) {
             shooter.setState(Shooter.State.Spin_Up);
         }
@@ -99,8 +100,8 @@ public class Red_Teleop extends OpMode {
 
         drive.localizer.update();
 
-        double rx = turnController.calc(drive.imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.DEGREES), commandDegrees);
-
+        //double rx = turnController.calc(drive.imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.DEGREES), commandDegrees);
+        double rx = gamepad1.left_stick_x;
         // ********************* Driving Math ***** Do NOT Change *********************
         double botHeading = drive.imu.getRobotYawPitchRollAngles().getYaw(AngleUnit.RADIANS);
 
